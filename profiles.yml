@@ -1,0 +1,11 @@
+iot_pipeline:
+  target: dev
+  outputs:
+    dev:
+      type: postgres
+      host: db
+      port: 5432
+      user: iot_user
+      password: Aryaguna2022
+      dbname: iot_pipeline
+      schema: public

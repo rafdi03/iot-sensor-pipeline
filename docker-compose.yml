@@ -1,0 +1,69 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:15
+    container_name: iot_postgres
+    environment:
+      POSTGRES_USER: iot_user
+      POSTGRES_PASSWORD: Aryaguna2022
+      POSTGRES_DB: iot_pipeline
+      TZ: Asia/Jakarta
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U iot_user -d iot_pipeline"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: iot_pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
+    depends_on:
+      - db
+
+  api:
+    build: ./API
+    container_name: iot_api
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+
+  dbt:
+    image: ghcr.io/dbt-labs/dbt-postgres:1.8.latest
+    container_name: iot_dbt
+    volumes:
+      - .:/usr/app
+    working_dir: /usr/app
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DBT_PROFILES_DIR: /usr/app
+
+  streamlit:
+    container_name: iot_streamlit
+    build:
+      context: ./streamlit
+    ports:
+      - "8501:8501"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./streamlit:/app
+    command: streamlit run app.py --server.port=8501 --server.address=0.0.0.0
+
+
+volumes:
+  postgres_data:
